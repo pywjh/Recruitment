@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+{% if jobs %}
+    <ul>
+    {% for job in jobs %}
+        <li>{{job.job_type}}  <a href="/job/{{ job.id }}/" style="color:blue">{{ job.job_name }}</a>   {{job.job_city}}  </li>
+    {% endfor %}
+    </ul>
+{% else %}
+    <p>No jobs are available.</p>
+{% endif %}
+
+{% endblock %}
