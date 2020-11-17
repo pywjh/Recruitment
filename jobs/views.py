@@ -14,7 +14,7 @@ def joblist(request):
 
 def detail(request, job_id):
     try:
-        job = Job.objects.get(id=job_id)
+        job = Job.objects.get(pk=job_id)
         job.city_name = Cities[job.job_city][1]
     except Job.DoesNotExist:
         raise Http404("Job does not exist")

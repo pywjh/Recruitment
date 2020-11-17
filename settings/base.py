@@ -31,6 +31,8 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    # 'simpleui',
+    'grappelli',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -39,6 +41,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'jobs',
     'interview',
+    'dingtalkchatbot',
+    'registration',
 ]
 
 LOGGING = {
@@ -175,3 +179,14 @@ STATIC_URL = '/static/'
 STATICFILES_DIRS = [
     BASE_DIR / 'static',
 ]
+
+GRAPPELLI_ADMIN_TITLE = '浆果科技招聘后台管理'
+
+DINGTALK_WEB_HOOK = ''
+
+ACCOUNT_ACTIVATION_DAYS = 7
+
+# after login render to /
+LOGIN_REDIRECT_URL = '/'
+# after register render to accounts/login
+SIMPLE_BACKEND_REDIRECT_URL = '/accounts/login/'

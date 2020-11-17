@@ -2,9 +2,13 @@ import csv
 import logging
 
 from django.contrib import admin
-from .models import Candidate
 from django.utils import timezone, dateformat
 from django.http import HttpResponse
+from django.db.models import Q
+
+from .models import Candidate
+from . import candidate_field as cf
+from .dingtalk import send
 
 logger = logging.getLogger(__name__)
 
@@ -18,9 +22,32 @@ def get_group_names(user):
     获取当前用户的所有的组
     """
     group_names = []
-    for g in user.groups.all():
-        group_names.append(g.name)
+    group_names.extend(user.groups.values_list('name', flat=True))
     return group_names
+
+
+# 通知一面面试官面试
+def notify_interviewer(model_admin, request, queryset):
+    """
+    动作菜单，通知对应面试官
+    """
+    candidates = '、'.join([getattr(rec, 'username', '') for rec in queryset])
+    interviewers = '、'.join(
+        list(
+            set(
+                [
+                    getattr(rec, 'first_interviewer_user', None) and
+                    getattr(rec, 'first_interviewer_user').username or ''
+                    for rec in queryset
+                ]
+            )
+        )
+    )
+    send("候选人 %s 进入面试环节，亲爱的面试官，请准备好面试： %s" % (candidates, interviewers))
+
+
+notify_interviewer.short_description = '通知一面面试官'
+notify_interviewer.allowed_permissions = ('notify', )
 
 
 def export_model_as_csv(model_admin, request, queryset):
@@ -56,8 +83,9 @@ def export_model_as_csv(model_admin, request, queryset):
     return response
 
 
-# 汉化动作菜单的名称
+# 重命名动作菜单的名称
 export_model_as_csv.short_description = '导出为CSV文件'
+export_model_as_csv.allowed_permissions = ('export', )
 
 
 def get_list_editable(request):
@@ -74,7 +102,7 @@ def get_list_editable(request):
 
 class CandidateAdmin(admin.ModelAdmin):
     # 自定义动作
-    actions = (export_model_as_csv,)
+    actions = (export_model_as_csv, notify_interviewer, )
     # 不展示的字段
     exclude = ('creator', 'created_date', 'modified_date')
     # 要展示的字段
@@ -90,23 +118,44 @@ class CandidateAdmin(admin.ModelAdmin):
     # 默认排序
     ordering = ('hr_result', 'second_result', 'first_result',)
 
-    fieldsets = (
-        (None, {'fields': ("userid", ("username", "city", "phone"), ("email", "apply_position", "born_address"),
-                           ("gender", "candidate_remark", "bachelor_school"),
-                           ("master_school", "doctor_school", "major"), "degree",
-                           ("test_score_of_general_ability", "paper_score"),)}),
-        ('第一轮面试', {'fields': (
-            "first_interviewer_user", "first_score", ("first_learning_ability", "first_professional_competency"),
-            "first_advantage", "first_disadvantage", "first_result", "first_recommend_position", "first_remark",)}),
-        ('第二轮面试', {'fields': ("second_interviewer_user", (
-            "second_learning_ability", "second_professional_competency", "second_pursue_of_excellence"),
-                              ("second_communication_ability", "second_pressure_score", "second_score"),
-                              "second_advantage", "second_disadvantage", "second_result", "second_recommend_position",
-                              "second_remark",)}),
-        ('第三轮面试', {'fields': ("hr_interviewer_user", ("hr_score", "hr_responsibility", "hr_communication_ability"),
-                              ("hr_logic_ability", "hr_potential", "hr_stability"), "hr_advantage", "hr_disadvantage",
-                              "hr_result", "hr_remark", "last_editor",)}),
-    )
+    # 当前用户是否有导出权限
+    def has_export_permission(self, request):
+        return request.user.has_perm(f'{self.opts.app_label}.{"export"}')
+
+    # 当前用户是否有导出权限
+    def has_notify_permission(self, request):
+        return request.user.has_perm(f'{self.opts.app_label}.{"notify"}')
+
+
+
+    def get_fieldsets(self, request, obj=None):
+        """
+        权限控制： fieldsets
+        一面只能看到基础+一面信息
+        二面可以看到基础+一面+二面的信息
+        hr可以看到基础+一面+二面+hr的信息
+        """
+        group_names = get_group_names(request.user)
+
+        if 'interviewer' in group_names and obj.first_interviewer_user == request.user:
+            return cf.default_fieldsets_first
+        elif 'interviewer' in group_names and obj.second_interviewer_user == request.user:
+            return cf.default_fieldsets_second
+        else:
+            return cf.default_fieldsets
+
+    def get_queryset(self, request):
+        """
+        数据集权限
+        出了admin和hr组，其他的人，一面和二面是当前用户的才能看到
+        """
+        user = request.user
+        queryset = super().get_queryset(request)
+        group_names = get_group_names(user)
+
+        if user.is_superuser or 'hr' in group_names:
+            return queryset
+        return queryset.filter(Q(first_interviewer_user=user) | Q(second_interviewer_user=user))
 
     # 全局的，达不到效果
     # list_editable = ('first_interviewer_user', 'second_interviewer_user',)
