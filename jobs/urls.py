@@ -16,4 +16,5 @@ urlpatterns = [
     url(r"^$", views.joblist, name="index"),
     url(r"^joblist/", views.joblist, name="joblist"),
     url(r'^job/(?P<job_id>\d+)/$', views.detail, name='detail'),
+    path('resume/add/', views.ResumeView.as_view(), name='resume_add'),
 ]

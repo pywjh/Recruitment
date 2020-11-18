@@ -1,0 +1,10 @@
+<h3>申请简历填写</h3>
+<hr>
+<form method="post" class="form" style="width:600px;margin-left:10px">
+    {% csrf_token %}
+    {{ form.as_p }}
+
+    <button type="submit" class="btn btn-primary">
+      提交
+    </button>
+</form>

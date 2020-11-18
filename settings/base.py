@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'interview',
     'dingtalkchatbot',
     'registration',
+    'bootstrap4'
 ]
 
 LOGGING = {

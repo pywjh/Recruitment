@@ -5,10 +5,11 @@ from django.contrib import admin
 from django.utils import timezone, dateformat
 from django.http import HttpResponse
 from django.db.models import Q
+from django.contrib import messages
 
-from .models import Candidate
-from . import candidate_field as cf
-from .dingtalk import send
+from interview.models import Candidate
+from interview import candidate_field as cf
+from interview.dingtalk import send
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +45,7 @@ def notify_interviewer(model_admin, request, queryset):
         )
     )
     send("候选人 %s 进入面试环节，亲爱的面试官，请准备好面试： %s" % (candidates, interviewers))
+    messages.add_message(request, messages.INFO, '已经成功发送面试通知')
 
 
 notify_interviewer.short_description = '通知一面面试官'
@@ -125,8 +127,6 @@ class CandidateAdmin(admin.ModelAdmin):
     # 当前用户是否有导出权限
     def has_notify_permission(self, request):
         return request.user.has_perm(f'{self.opts.app_label}.{"notify"}')
-
-
 
     def get_fieldsets(self, request, obj=None):
         """
