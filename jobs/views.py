@@ -1,6 +1,7 @@
-from django.shortcuts import render, redirect, reverse
-from django.http import Http404
 from django.views import View
+from django.http import Http404
+from django.shortcuts import render, redirect, reverse
+from django.contrib.auth.mixins import LoginRequiredMixin
 
 from jobs.models import Job, Resume
 from jobs.forms import ResumeForm
@@ -26,17 +27,16 @@ def job_detail(request, job_id):
 def resume_detail(request, pk):
     try:
         resume = Resume.objects.get(pk=pk)
-        # job.city_name = job.get_job_city_display()
     except Resume.DoesNotExist:
         raise Http404("Job does not exist")
     return render(request, 'resume_detail.html', locals())
 
 
-class ResumeView(View):
+class ResumeView(LoginRequiredMixin, View):
 
     def get(self, request, *args, **kwargs):
-        if not request.user.is_active:
-            return redirect('/accounts/login/')
+        # if not request.user.is_active:
+        #     return redirect('/accounts/login/')
         form = ResumeForm()
         for x in self.request.GET:
             form.initial[x] = self.request.GET[x]
