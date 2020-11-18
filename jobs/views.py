@@ -14,13 +14,22 @@ def joblist(request):
     return render(request, 'joblist.html', locals())
 
 
-def detail(request, job_id):
+def job_detail(request, job_id):
     try:
         job = Job.objects.get(pk=job_id)
         job.city_name = job.get_job_city_display()
     except Job.DoesNotExist:
         raise Http404("Job does not exist")
     return render(request, 'job.html', locals())
+
+
+def resume_detail(request, pk):
+    try:
+        resume = Resume.objects.get(pk=pk)
+        # job.city_name = job.get_job_city_display()
+    except Resume.DoesNotExist:
+        raise Http404("Job does not exist")
+    return render(request, 'resume_detail.html', locals())
 
 
 class ResumeView(View):
